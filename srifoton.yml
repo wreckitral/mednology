@@ -1,0 +1,202 @@
+openapi: '3.0.2'
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/REDSRIFOTON_1/rest-api/1.0.0
+  - description: use this on your localhost
+    url: https://localhost:7777
+info:
+  description: This is mednology rest api documentations
+  version: "1.0.0"
+  title: Mednology
+  contact:
+    email: redsrifoton@gmail.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+tags:
+  - name: Auth
+    description: authentication endpoints
+  - name: User
+    description: all of the user related endpoints
+  
+paths:
+  /user/signup:
+    post:
+      tags:
+        - User
+      summary: signup
+      operationId: signup
+      description: |
+        register the user to the database
+      responses:
+        '200':
+          description: successfully saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+        '400':
+          description: Bad request, did not provide correct data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+        '409':
+          description: Email Already exists or Username Already Exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+      requestBody:
+        $ref: '#/components/requestBodies/user'
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: login
+      operationId: login
+      description: |
+        create authorization token and refresh token then log in the user
+      responses:  
+        '200':
+          description: successfully saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/userInfo'
+        '400':
+          description: Bad request, did not provide correct data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+        '404':
+          description: Username Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+      requestBody:
+        $ref: '#/components/requestBodies/userInfo'
+  /auth/refresh:
+    get:
+      tags:
+        - Auth
+      summary: Get new access token using the refresh token
+      description: Get new access token using the refresh token
+      operationId: refreshAccessToken
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/accessToken'
+        '401':
+          description: Invalid  token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+        '400':
+          description: expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+        '500':
+          description: internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+      security:
+        - refreshToken: []
+components:
+  schemas:
+    users:
+      type: object
+      properties:
+        firstName:
+          type: string
+          description: firstname
+        lastName:
+          type: string
+          description: lastname
+        email:
+          type: string
+          description: email
+        username:
+          type: string
+          description: username
+        password:
+          type: string
+          description: password
+    userInfo:
+      type: object
+      properties:
+        message:
+          type: string
+        username:
+          type: string
+        accessToken:
+          $ref: '#/components/schemas/accessToken'
+    user:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username
+        email:
+          type: string
+          description: Email
+        password:
+          type: string
+          description: password
+    apiResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          format: int32
+        message:
+          type: string
+    accessToken:
+      type: object
+      properties:
+        message:
+          type: string
+        accessToken:
+          type: string
+          description: access token status
+  requestBodies:
+    user:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/users'
+      description: User auth info
+      required: true
+    userInfo:
+      content:
+        application/json: 
+          schema:
+            $ref: '#/components/schemas/user'
+  securitySchemes:
+    refreshToken:           
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
