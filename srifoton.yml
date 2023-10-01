@@ -1,10 +1,10 @@
-openapi: '3.0.2'
+openapi: 3.0.0
 servers:
   # Added by API Auto Mocking Plugin
   - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/REDSRIFOTON_1/rest-api/1.0.0
-  - description: use this on your localhost
-    url: https://localhost:7777
+    url: https://virtserver.swaggerhub.com/redsrifoton/mednology/1.0.0
+  - description: use localhost
+    url: "http://localhost:7777"
 info:
   description: This is mednology rest api documentations
   version: "1.0.0"
@@ -19,7 +19,6 @@ tags:
     description: authentication endpoints
   - name: User
     description: all of the user related endpoints
-  
 paths:
   /user/signup:
     post:
@@ -56,6 +55,34 @@ paths:
                 $ref: '#/components/schemas/apiResponse'
       requestBody:
         $ref: '#/components/requestBodies/user'
+  /user/verifyEmail/:
+    get:
+      tags: 
+        - User
+      summary: verify user's email
+      operationId: verifyEmailUser
+      parameters:
+        - name: emailToken
+          in: query
+          description: jwt token to verify particular email 
+          required: true
+          schema:
+            type: string
+      description: |
+        verify user's email by sending email with this endpoint attach to the link
+      responses:
+        '200':
+          description: successfully saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiResponse'
+        '500':
+            description: internal server error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/apiResponse'
   /auth/login:
     post:
       tags:
@@ -181,7 +208,7 @@ components:
           type: string
         accessToken:
           type: string
-          description: access token status
+          description: access token status      
   requestBodies:
     user:
       content:
