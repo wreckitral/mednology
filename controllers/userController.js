@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Doctor = require("../models/Doctor");
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
@@ -6,7 +7,10 @@ const Mailgen = require("mailgen");
 const jwt = require("jsonwebtoken");
 
 const signup = asyncHandler(async (req, res) => {
-  const { firstName, lastName, username, email, password } = req.body;
+  const { firstName, lastName, username, email, password } = req.body; // fetch the data from req.body
+
+  const { file } = req; // fetch the user profile picture
+  console.log(file);
 
   if (
     !firstName ||
@@ -22,7 +26,7 @@ const signup = asyncHandler(async (req, res) => {
   )
     return res.status(400).json({ msg: "All fields are required" }); // checking if the user provide all of the credentials
 
-  const existUsername = await User.findOne({ username: username }); // checking if the user already exist 
+  const existUsername = await User.findOne({ username: username }); // checking if the user already exist
   const existEmail = await User.findOne({ email: email });
 
   if (existUsername)
@@ -31,7 +35,7 @@ const signup = asyncHandler(async (req, res) => {
     return res.status(409).json({ msg: "Email already registered" });
 
   const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt); 
+  const hashedPassword = await bcrypt.hash(password, salt);
 
   const newUser = new User({
     firstName,
@@ -39,6 +43,11 @@ const signup = asyncHandler(async (req, res) => {
     username,
     email,
     password: hashedPassword,
+    profilePic: {
+      filename: file.filename,
+      contentType: file.mimetype,
+      metadata: "photo profile",
+    },
   });
 
   await newUser.save();
@@ -53,7 +62,7 @@ const signup = asyncHandler(async (req, res) => {
 
   let transporter = nodemailer.createTransport(config);
 
-  let MailGenerator = new Mailgen({ 
+  let MailGenerator = new Mailgen({
     theme: "cerberus",
     product: {
       name: "MEDNOLOGY",
@@ -61,7 +70,8 @@ const signup = asyncHandler(async (req, res) => {
     },
   });
 
-  const emailToken = jwt.sign( // create token to send in order to send email verification to user 
+  const emailToken = jwt.sign(
+    // create token to send in order to send email verification to user
     { userId: newUser._id },
     process.env.EMAIL_SECRET,
     {
@@ -69,7 +79,7 @@ const signup = asyncHandler(async (req, res) => {
     }
   );
 
-  const emailToSent = { 
+  const emailToSent = {
     body: {
       name: `${firstName} ${lastName}`,
       intro: "Terima kasih Anda telah bergabung dengan mednology.com",
@@ -98,9 +108,145 @@ const signup = asyncHandler(async (req, res) => {
     html: emailBody,
   };
 
-  transporter.sendMail(message).then(() => { // sending the email using nodemailer 
+  transporter.sendMail(message).then(() => {
+    // sending the email using nodemailer
     return res.status(201).json({
       msg: "User successfully registered, user should receive verification email",
+    });
+  });
+});
+
+const doctorSignup = asyncHandler(async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    specialty,
+    workplace,
+    city,
+    kecamatan,
+    username,
+    email,
+    password,
+  } = req.body; // fetch the data from req.body
+
+  const { file } = req; // fetch the user profile picture
+
+  console.log(file);
+
+  if (
+    !firstName ||
+    !lastName ||
+    !username ||
+    !email ||
+    !password ||
+    !specialty ||
+    !workplace ||
+    !city ||
+    !kecamatan ||
+    firstName === "" ||
+    lastName === "" ||
+    username === "" ||
+    email === "" ||
+    password === "" ||
+    specialty === "" ||
+    workplace === "" ||
+    city === "" ||
+    kecamatan === ""
+  )
+    return res.status(400).json({ msg: "All fields are required" }); // checking if the user provide all of the credentials
+
+  const existUsername = await Doctor.findOne({ username: username }); // checking if the user already exist
+  const existEmail = await Doctor.findOne({ email: email });
+
+  if (existUsername)
+    return res.status(409).json({ msg: "Username already exist" }); // return if they already exist
+  if (existEmail)
+    return res.status(409).json({ msg: "Email already registered" });
+
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
+  const newDoctor = new Doctor({
+    firstName,
+    lastName,
+    specialty,
+    workplace: {
+      name: workplace,
+      city: city,
+      kecamatan: kecamatan,
+    },
+    username,
+    email,
+    password: hashedPassword,
+    profilePic: {
+      filename: file.filename,
+      contentType: file.mimetype,
+      metadata: "photo profile",
+    },
+  });
+
+  await newDoctor.save();
+
+  let config = {
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.PASSWORD,
+    },
+  };
+
+  let transporter = nodemailer.createTransport(config);
+
+  let MailGenerator = new Mailgen({
+    theme: "cerberus",
+    product: {
+      name: "MEDNOLOGY",
+      link: "https://google.com",
+    },
+  });
+
+  const emailToken = jwt.sign(
+    // create token to send in order to send email verification to user
+    { userId: newDoctor._id },
+    process.env.EMAIL_SECRET,
+    {
+      expiresIn: "1d",
+    }
+  );
+
+  const emailToSent = {
+    body: {
+      name: `${firstName} ${lastName}`,
+      intro: "Terima kasih Anda telah bergabung dengan mednology.com",
+      action: {
+        instructions:
+          "Silahkan klik link di bawah ini untuk mengkonfirmasi email Anda",
+        button: {
+          color: "#22BC66", // Optional action button color
+          text: "Confirm your email",
+          link: `http://localhost:7777/user/verifyEmail/${emailToken}`,
+        },
+      },
+      outro:
+        "Punya pertanyaan? Silahkan balas email ini, dengan senang hati kami akan menjawab",
+      signature: "Terima Kasih",
+      greeting: "Halo",
+    },
+  };
+
+  const emailBody = MailGenerator.generate(emailToSent); // generate the email using Mailgen package
+
+  const message = {
+    from: process.env.EMAIL,
+    to: newDoctor.email,
+    subject: "Konfirmasi Email",
+    html: emailBody,
+  };
+
+  transporter.sendMail(message).then(() => {
+    // sending the email using nodemailer
+    return res.status(201).json({
+      msg: "Doctor successfully registered, Doctor should receive verification email",
     });
   });
 });
@@ -121,4 +267,5 @@ const verifyEmail = asyncHandler(async (req, res) => {
 module.exports = {
   signup,
   verifyEmail,
+  doctorSignup,
 };

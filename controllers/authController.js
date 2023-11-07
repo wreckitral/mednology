@@ -24,7 +24,7 @@ const login = asyncHandler(async (req, res) => {
       username: user.username,
     },
     process.env.ACCESS_SECRET,
-    { expiresIn: "15s" }
+    { expiresIn: "24h" }
   );
 
   const refreshToken = jwt.sign( // refresh token so user can login again later as soon as the cookie is still there
